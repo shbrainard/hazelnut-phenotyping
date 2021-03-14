@@ -171,7 +171,20 @@ def crop_hazelnuts(image: np.ndarray, expected_nuts: int):
 
         mask = image[ext_top[1] : ext_bot[1], ext_left[0] : ext_right[0]]
         mask = crop_away_grid_artifacts(mask)
-        mask_dict = {"mask": mask, "top": ext_top, "left": ext_left}
+
+        # https://docs.opencv.org/master/dd/d49/tutorial_py_contour_features.html
+        x, y, w, h = cv2.boundingRect(c)
+        # print(x, y, w, h)
+
+        mask_dict = {
+            "mask": mask,
+            "top": ext_top,
+            "left": ext_left,
+            "right": ext_right,
+            "bottom": ext_bot,
+            "width": w,
+            "height": h,
+        }
         nuts.append(mask_dict)
 
     return nuts
