@@ -7,6 +7,7 @@ import numpy as np
 from pyzbar import pyzbar
 
 from lib.crop import get_carrot_contour
+from lib.constants import config
 from lib.utils import get_attributes_from_filename
 
 
@@ -174,7 +175,6 @@ def crop_hazelnuts(image: np.ndarray, expected_nuts: int):
 
         # https://docs.opencv.org/master/dd/d49/tutorial_py_contour_features.html
         x, y, w, h = cv2.boundingRect(c)
-        # print(x, y, w, h)
 
         mask_dict = {
             "mask": mask,
@@ -288,6 +288,13 @@ def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
     for i, cropped_nut_dict in enumerate(sorted_nuts):
         i = i + 1
         cropped_nut = cropped_nut_dict["mask"]
+        width_px = cropped_nut_dict["width"]
+        height_px = cropped_nut_dict["height"]
+        scale = round(
+            (width_px / config["square_width"] + height_px / config["square_height"])
+            / 2,
+            3,
+        )
 
         location = qr_attributes["Location"]
         year = qr_attributes["Year"]
@@ -303,7 +310,7 @@ def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
             cells_with_nuts += 1
             # write crop to disk
             os.makedirs(dest_dir, exist_ok=True)
-            file_name = f"{qr_code_content}{{Nut_{i}}}.png"
+            file_name = f"{qr_code_content}{{Scale_{scale}}}{{Nut_{i}}}.png"
             dest_path_crop = os.path.join(dest_dir, file_name)
             cv2.imwrite(dest_path_crop, cropped_nut)
 
