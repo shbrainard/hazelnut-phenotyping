@@ -1,6 +1,5 @@
 import csv
 import os
-import pprint
 import re
 from statistics import mean
 
@@ -125,8 +124,8 @@ def append_dimensions_to_filenames(
 @click.command()
 @click.option("--dest", "-d", type=click.Path(exists=True), help="dest")
 @click.option("--src", "-s", type=click.Path(exists=True), help="source file")
-@click.option("--width", "-w", type=click.INT, help="width in mm")
-@click.option("--height", "-h", type=click.INT, help="height in mm")
+@click.option("--width", "-w", type=click.FLOAT, help="width in mm")
+@click.option("--height", "-h", type=click.FLOAT, help="height in mm")
 @click.option("--csv", "-c", is_flag=True, help="write out csv file")
 @click.option("--append", "-a", is_flag=True, help="append to files")
 def main(dest: str, src: str, width: int, height: int, csv: bool, append: bool):
