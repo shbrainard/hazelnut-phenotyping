@@ -70,7 +70,7 @@ def get_files_to_process(source_dir, allowed_methods=[]):
 
 
 def get_kv_pairs(filename):
-    key_value_re = r"{([\w-]+_[\w-]+)}"
+    key_value_re = r"{([\w-]+_[\.\w-]+)}"
     kv_pairs = re.findall(key_value_re, filename)
     return kv_pairs
 

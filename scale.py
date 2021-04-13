@@ -41,7 +41,7 @@ def process_image(image_path: str) -> list:
         # add UID
         image_stats.append(
             {
-                "index": i,
+                "index": i + 1,
                 "UID": qr_attributes["UID"],
                 "rect_width": width,
                 "rect_height": height,
