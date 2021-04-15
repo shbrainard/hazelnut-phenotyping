@@ -148,11 +148,11 @@ def save_box_as_image(box, dest, destdir="Genotype", destsub=""):
 
         kv_pairs = get_kv_pairs(attributes)
 
-        try:
-            scalebar_length = measure_scalebar_new(box["mask"])
-            kv_pairs.append("Scale_%s" % scalebar_length)
-        except:
-            click.secho("Could not read scalebar!", fg="red")
+        # try:
+        #     scalebar_length = measure_scalebar_new(box["mask"])
+        #     kv_pairs.append("Scale_%s" % scalebar_length)
+        # except:
+        #     click.secho("Could not read scalebar!", fg="red")
 
         kv_pairs.append("Photo_%s" % (count + 1))
 
