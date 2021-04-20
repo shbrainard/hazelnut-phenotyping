@@ -113,6 +113,23 @@ def create_nut_mask_overlay(nut_image, masking_method):
     return output
 
 
+def create_ellipse_overlay(nut_image, masking_method):
+    # https://docs.opencv.org/master/dd/d49/tutorial_py_contour_features.html
+    image = nut_image.copy()
+    mask = masking_method(nut_image)
+    contour = get_carrot_contour(mask)
+
+    if contour is not None:
+        ellipse = cv2.fitEllipse(contour)
+        cv2.ellipse(image, ellipse, (0, 255, 0), 2)
+        _, cols = image.shape[:2]
+        [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
+        lefty = int((-x * vy / vx) + y)
+        righty = int(((cols - x) * vy / vx) + y)
+        cv2.line(image, (cols - 1, righty), (0, lefty), (0, 0, 255), 2)
+        return image
+
+
 def create_nut_mask(nut_image, masking_method):
     """
     create a binary mask of the nut
@@ -247,34 +264,39 @@ def rotate_if_you_must(image):
 
     qr_codes = pyzbar.decode(thresh)
 
-    code_rect = qr_codes[0].rect
+    if qr_codes:
+        code_rect = qr_codes[0].rect
 
-    image_height = image.shape[0]
-    image_width = image.shape[1]
+        image_height = image.shape[0]
+        image_width = image.shape[1]
 
-    # image 'on side'
-    if image_height < image_width:
-        # left
-        if code_rect.left < image_width / 2:
-            print("ℹ️  qr code on the left")
-            return np.rot90(image, 3)  # three times counter clockwise
-        # right
+        # image 'on side'
+        if image_height < image_width:
+            # left
+            if code_rect.left < image_width / 2:
+                print("ℹ️  qr code on the left")
+                return np.rot90(image, 3)  # three times counter clockwise
+            # right
+            else:
+                print("ℹ️  qr code on the right")
+                return np.rot90(image, 1)
+        # top or bottom
         else:
-            print("ℹ️  qr code on the right")
-            return np.rot90(image, 1)
-    # top or bottom
+            if code_rect.top < image_height / 2:
+                print("ℹ️  qr code on top")
+                return image
+            else:
+                print("ℹ️  qr code at bottom")
+                return np.rot90(image, 2)
     else:
-        if code_rect.top < image_height / 2:
-            print("ℹ️  qr code on top")
-            return image
-        else:
-            print("ℹ️  qr code at bottom")
-            return np.rot90(image, 2)
+        print("no qr code found...")
 
 
 def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
     image = cv2.imread(src)
     image = rotate_if_you_must(image)
+    if image is None:
+        return
     expected_nuts = columns * rows
     cropped_nuts = crop_hazelnuts(image, expected_nuts)
 
@@ -327,5 +349,16 @@ def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
                 os.makedirs(dest_dir_mask_overlay, exist_ok=True)
                 dest_path_mask_overlay = os.path.join(dest_dir_mask_overlay, file_name)
                 cv2.imwrite(dest_path_mask_overlay, mask_overlay)
+            try:
+                ellipse_overlay = create_ellipse_overlay(cropped_nut, masking_method)
+                if ellipse_overlay is not None:
+                    dest_dir_ellipse_overlay = os.path.join(dest_dir, "ellipse-overlay")
+                    os.makedirs(dest_dir_ellipse_overlay, exist_ok=True)
+                    dest_path_ellipse_overlay = os.path.join(
+                        dest_dir_ellipse_overlay, file_name
+                    )
+                    cv2.imwrite(dest_path_ellipse_overlay, ellipse_overlay)
+            except Exception as e:
+                print(e)
 
     print("ℹ️  total nuts found:", cells_with_nuts, "🌰 " * cells_with_nuts)
