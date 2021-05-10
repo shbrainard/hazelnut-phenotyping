@@ -1,9 +1,6 @@
 import os
 import re
 import time
-import timeit
-
-import imutils
 import click
 import cv2
 import numpy as np
@@ -11,12 +8,9 @@ from pyzbar import pyzbar
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from lib.crop import create_binary_mask, create_mask_overlay
 from lib.constants import config
 from lib.hazelnuts import process_image
-from lib.scalebar import measure_scalebar_new
-from lib.unskew import unskew
-from lib.utils import get_kv_pairs, get_kv_pairs_dict, show_image
+from lib.utils import get_kv_pairs, get_kv_pairs_dict
 
 UID_RE = r"{uid_(?P<uid>.+?)}"
 
@@ -148,11 +142,11 @@ def save_box_as_image(box, dest, destdir="Genotype", destsub=""):
 
         kv_pairs = get_kv_pairs(attributes)
 
-        try:
-            scalebar_length = measure_scalebar_new(box["mask"])
-            kv_pairs.append("Scale_%s" % scalebar_length)
-        except:
-            click.secho("Could not read scalebar!", fg="red")
+        # try:
+        #     scalebar_length = measure_scalebar_new(box["mask"])
+        #     kv_pairs.append("Scale_%s" % scalebar_length)
+        # except:
+        #     click.secho("Could not read scalebar!", fg="red")
 
         kv_pairs.append("Photo_%s" % (count + 1))
 
@@ -181,8 +175,10 @@ def do_acquisition(image_path, dest, tmp, destdir, destsub, discard, columns, ro
     if not os.path.exists(temp_dest):
         os.makedirs(temp_dest)
 
-    scan_type_map = {"s": "in-shell", "k": "kernel"}
-    scan_type = click.prompt("in-shell [s] or kernels [k]?", type=str, default="s")
+    scan_type_map = {"s": "in-shell", "k": "kernel", "b": "blanched"}
+    scan_type = click.prompt(
+        "in-shell [s], kernels [k] or blanched [b]?", type=str, default="s"
+    )
     process_image(image_path, dest, columns, rows, scan_type_map[scan_type.lower()])
     return
 
@@ -202,7 +198,9 @@ class MyHandler(FileSystemEventHandler):
         msg = "New file %s detected." % event.src_path
         click.secho(msg, fg="magenta")
 
-        if event.src_path.lower().endswith(".jpg"):
+        if event.src_path.lower().endswith(".jpg") or event.src_path.lower().endswith(
+            ".jpeg"
+        ):
 
             do_acquisition(
                 event.src_path,
@@ -286,7 +284,7 @@ def run(columns, dest, destdir, destsub, discard, rows, src, tmp):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        click.secho("   I'm shutting down... see ya!", fg="white")
+        click.secho("   I'm shutting down... see you! 👋", fg="white")
         observer.stop()
     observer.join()
 

@@ -48,6 +48,8 @@ CONFIG_DEFAULTS = [
     {"key": "lens_maker", "default": "Nikon"},
     {"key": "lens_model", "default": "Nikkor 24mm f/2.8D AF"},
     {"key": "file_format", "default": ".png"},
+    {"key": "square_width", "default": 48},
+    {"key": "square_height", "default": 48},
 ]
 
 
