@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from lib.constants import config
-from lib.hazelnuts import process_image
+from lib.hazelnuts import process_image, hazelnut_double_check
 from lib.utils import get_kv_pairs, get_kv_pairs_dict
 
 UID_RE = r"{uid_(?P<uid>.+?)}"
@@ -179,8 +179,23 @@ def do_acquisition(image_path, dest, tmp, destdir, destsub, discard, columns, ro
     scan_type = click.prompt(
         "in-shell [s], kernels [k] or blanched [b]?", type=str, default="s"
     )
-    process_image(image_path, dest, columns, rows, scan_type_map[scan_type.lower()])
-    return
+
+    # do the checks here
+    double_check_message = hazelnut_double_check(
+        image_path, dest, scan_type_map[scan_type.lower()]
+    )
+    if double_check_message:
+        proceed = click.prompt(f"{double_check_message} [N|y]", default="N")
+        if proceed == "y":
+            process_image(
+                image_path, dest, columns, rows, scan_type_map[scan_type.lower()]
+            )
+        else:
+            do_acquisition(
+                image_path, dest, tmp, destdir, destsub, discard, columns, rows
+            )
+    else:
+        process_image(image_path, dest, columns, rows, scan_type_map[scan_type.lower()])
 
 
 class MyHandler(FileSystemEventHandler):
