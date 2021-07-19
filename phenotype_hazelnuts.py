@@ -80,6 +80,7 @@ def spit_out_csv(instances_dict: dict, dest: str):
             "Plant",
             "Nut",
             "Scale",
+            "Genotype",
             "inshell_white_pixels",
             "inshell_area",
             "inshell_width",
@@ -113,6 +114,7 @@ def spit_out_csv(instances_dict: dict, dest: str):
                     first_instance["Plant"],
                     first_instance["Nut"],
                     first_instance["Scale"],
+                    first_instance.get("Genotype", ""),
                 ]
                 inshell_properties = [None] * 9
                 kernel_properties = [None] * 9
