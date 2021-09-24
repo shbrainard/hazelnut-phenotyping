@@ -274,22 +274,56 @@ def rotate_if_you_must(image):
         if image_height < image_width:
             # left
             if code_rect.left < image_width / 2:
-                print("ℹ️  qr code on the left")
+                # print("ℹ️  qr code on the left")
                 return np.rot90(image, 3)  # three times counter clockwise
             # right
             else:
-                print("ℹ️  qr code on the right")
+                # print("ℹ️  qr code on the right")
                 return np.rot90(image, 1)
         # top or bottom
         else:
             if code_rect.top < image_height / 2:
-                print("ℹ️  qr code on top")
+                # print("ℹ️  qr code on top")
                 return image
             else:
-                print("ℹ️  qr code at bottom")
+                # print("ℹ️  qr code at bottom")
                 return np.rot90(image, 2)
     else:
         print("no qr code found...")
+
+
+def hazelnut_double_check(src: str, dest: str, scan_type: str) -> str:
+    """
+    extra line of defense against user
+    """
+    image = cv2.imread(src)
+    image = rotate_if_you_must(image)
+    if image is None:
+        return
+
+    qr_code_content = read_qr_code(image)
+    qr_attributes = get_attributes_from_filename(qr_code_content)
+
+    location = qr_attributes["Location"]
+    year = qr_attributes["Year"]
+    row = qr_attributes["Row"]
+    plant = qr_attributes["Plant"]
+    dest_dir = os.path.join(dest, location, year, f"Row_{row}-Plant_{plant}", scan_type)
+
+    # if the user says that something is a "kernel" photo, but the directory does not yet
+    # contain an "in-shell" directory, they are prompted to confirm that they indeed are
+    # taking photos of kernels
+    if scan_type == "kernel":
+        in_shell_dir = os.path.join(
+            dest, location, year, f"Row_{row}-Plant_{plant}", "in-shell"
+        )
+        if not os.path.exists(in_shell_dir):
+            return "🚨 An in-shell directory does not exist yet. Are you sure you're processing an image of kernels here?"
+    # if the user says that a photo is an "in-shell" photo or a "kernel" photo, but there is
+    # already a directory called, respectively, "in-shell" or "kernel", you are again prompted
+    # to confirm that this is what you intended.
+    if os.path.exists(dest_dir):
+        return f"🚨 The directory '{scan_type}' already exists. Are you sure you want to proceed?"
 
 
 def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
