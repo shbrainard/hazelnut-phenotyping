@@ -18,12 +18,12 @@ UID_RE = r"{uid_(?P<uid>.+?)}"
 def crop_boxes(image, expected_carrots):
     """
     takes the path of an image that comes out of the camara and
-    has already been unskewed. 
+    has already been unskewed.
 
     Args:
         image (np.array): the image
         expected_carrots (int): the number of carrots to be expected in the image
-    
+
     Returns:
         boxes (list of np.arrays ): list of the found boxes
     """
@@ -159,7 +159,9 @@ def save_box_as_image(box, dest, destdir="Genotype", destsub=""):
         cv2.imwrite(dest_path, box["mask"])
 
 
-def do_acquisition(image_path, dest, tmp, destdir, destsub, discard, columns, rows):
+def do_acquisition(
+    image_path, dest, tmp, destdir, destsub, discard, columns, rows, manual_mode
+):
     """
     Args:
         image_path - path to the image as string
@@ -169,6 +171,7 @@ def do_acquisition(image_path, dest, tmp, destdir, destsub, discard, columns, ro
         discard: a directory to copy the photo to if not processed (str)
         columns: (int) number of columns in grid
         rows: (int) number of rows in grid
+        manual_mode: (bool) manually enter qr key values if no qr code found
     """
 
     temp_dest = tmp
@@ -179,7 +182,9 @@ def do_acquisition(image_path, dest, tmp, destdir, destsub, discard, columns, ro
     scan_type = click.prompt(
         "in-shell [s], kernels [k] or blanched [b]?", type=str, default="s"
     )
-    process_image(image_path, dest, columns, rows, scan_type_map[scan_type.lower()])
+    process_image(
+        image_path, dest, columns, rows, scan_type_map[scan_type.lower()], manual_mode
+    )
     return
 
 
@@ -193,6 +198,7 @@ class MyHandler(FileSystemEventHandler):
         self.discard = kwargs.get("discard", None)
         self.columns = kwargs.get("columns", None)
         self.rows = kwargs.get("rows", None)
+        self.manual_mode = kwargs.get("manual_mode", None)
 
     def on_created(self, event):
         msg = "New file %s detected." % event.src_path
@@ -211,6 +217,7 @@ class MyHandler(FileSystemEventHandler):
                 self.discard,
                 self.columns,
                 self.rows,
+                self.manual_mode,
             )
 
             msg = "🛎   Bing bong! "
@@ -240,6 +247,9 @@ class MyHandler(FileSystemEventHandler):
     type=click.Path(exists=True),
     help="a directory to copy the photo to if not processed",
 )
+@click.option(
+    "--manual", "-m", is_flag=True, help="Manually enter them key/value pairs."
+)
 @click.option("--rows", "-r", type=click.INT, help="number of rows in grid", default=6)
 @click.option(
     "--src", "-s", type=click.Path(exists=True), help="source folder to watch"
@@ -251,7 +261,7 @@ class MyHandler(FileSystemEventHandler):
     help="destination of tmp dir. Non dropbox dir is advised.",
     required=True,
 )
-def run(columns, dest, destdir, destsub, discard, rows, src, tmp):
+def run(columns, dest, destdir, destsub, discard, manual, rows, src, tmp):
     if src is None:
         click.secho("No source specified. Use --src option.", fg="red")
         return
@@ -276,6 +286,7 @@ def run(columns, dest, destdir, destsub, discard, rows, src, tmp):
         columns=columns,
         rows=rows,
         tmp=tmp,
+        manual_mode=manual,
     )
     observer = Observer()
     observer.schedule(event_handler, src, recursive=True)

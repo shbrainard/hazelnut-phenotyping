@@ -27,7 +27,7 @@ def get_masks_to_process(source_dir, mask_type):
     get the absolute paths of the binary mask files to process
     Args:
         source_dir (str) - path
-        mask_type (str) - 
+        mask_type (str) -
     """
     subdirs = []
     for subdir, dirs, files in os.walk(source_dir):
@@ -69,7 +69,7 @@ def get_files_to_process(source_dir, allowed_methods=[]):
     return subdirs
 
 
-def get_kv_pairs(filename):
+def get_kv_pairs(filename: str):
     key_value_re = r"{([\w-]+_[\.\w-]+)}"
     kv_pairs = re.findall(key_value_re, filename)
     return kv_pairs
@@ -81,7 +81,7 @@ def get_kv_pairs_dict(filename):
     return {k: v for (k, v) in pairs}
 
 
-def get_attributes_from_filename(filename):
+def get_attributes_from_filename(filename: str):
     instance = {}
     kv_pairs = get_kv_pairs(filename)
     for pair in kv_pairs:
@@ -161,4 +161,3 @@ def pixel_to_mm(scale):
     # pixel_per_mm = scale / scalebar_length
     mm_per_px = scalebar_length / scale
     return round(mm_per_px, 4)
-
