@@ -1,8 +1,7 @@
 import os
-import shutil
+import click
 
 import cv2
-import imutils
 import numpy as np
 from pyzbar import pyzbar
 
@@ -244,12 +243,14 @@ def read_qr_code(image: np.ndarray) -> str:
     thresh = cv2.dilate(thresh, None, iterations=2)
     qr_codes = pyzbar.decode(thresh)
     decoded = qr_codes[0].data.decode("utf-8")
-    return decoded
+    if qr_codes:
+        decoded = qr_codes[0].data.decode("utf-8")
+        return decoded
 
 
-def rotate_if_you_must(image):
+def get_position_of_qr_code(image, manual_mode):
     """
-    rotate the image such that the qr code is on top
+    get position of qr code
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -270,39 +271,58 @@ def rotate_if_you_must(image):
         image_height = image.shape[0]
         image_width = image.shape[1]
 
-        # image 'on side'
+        # image 'landscape'
         if image_height < image_width:
             # left
             if code_rect.left < image_width / 2:
-                # print("ℹ️  qr code on the left")
-                return np.rot90(image, 3)  # three times counter clockwise
+                print("ℹ️  qr code on the left")
+                return "left"
             # right
             else:
-                # print("ℹ️  qr code on the right")
-                return np.rot90(image, 1)
+                print("ℹ️  qr code on the right")
+                return "right"
         # top or bottom
         else:
             if code_rect.top < image_height / 2:
-                # print("ℹ️  qr code on top")
-                return image
+                print("ℹ️  qr code on top")
+                return "top"
+                # return image
             else:
-                # print("ℹ️  qr code at bottom")
-                return np.rot90(image, 2)
+                print("ℹ️  qr code at bottom")
+                return "bottom"
     else:
-        print("no qr code found...")
+        print("🚨 no qr code found...")
+        if manual_mode is True:
+            manual_position = click.prompt(
+                "🇺🇸 No qr code found. Is it top [t], right [r], bottom [b] or left [l]?",
+                type=str,
+                default="t",
+            )
+            return {"t": "top", "r": "right", "b": "bottom", "l": "left"}.get(
+                manual_position, None
+            )
 
 
-def hazelnut_double_check(src: str, dest: str, scan_type: str) -> str:
+def rotate_if_you_must(image, qr_code_position):
+    """
+    rotate the image such that the qr code is on top
+    """
+
+    if qr_code_position == "left":
+        return np.rot90(image, 3)  # three times counter clockwise
+    elif qr_code_position == "right":
+        return np.rot90(image, 1)
+    elif qr_code_position == "top":
+        return image
+    elif qr_code_position == "bottom":
+        return np.rot90(image, 2)
+    return image
+
+
+def hazelnut_double_check(dest: str, scan_type: str, qr_attributes: dict) -> str:
     """
     extra line of defense against user
     """
-    image = cv2.imread(src)
-    image = rotate_if_you_must(image)
-    if image is None:
-        return
-
-    qr_code_content = read_qr_code(image)
-    qr_attributes = get_attributes_from_filename(qr_code_content)
 
     location = qr_attributes["Location"]
     year = qr_attributes["Year"]
@@ -326,16 +346,43 @@ def hazelnut_double_check(src: str, dest: str, scan_type: str) -> str:
         return f"🚨 The directory '{scan_type}' already exists. Are you sure you want to proceed?"
 
 
-def process_image(src: str, dest: str, columns: int, rows: int, scan_type: str):
+def get_qr_code_content(src: str, manual_mode: bool):
     image = cv2.imread(src)
-    image = rotate_if_you_must(image)
-    if image is None:
-        return
-    expected_nuts = columns * rows
-    cropped_nuts = crop_hazelnuts(image, expected_nuts)
+    qr_code_position = get_position_of_qr_code(image, manual_mode)
+    if qr_code_position is None:
+        return None, image
+    image = rotate_if_you_must(image, qr_code_position)
 
     qr_code_content = read_qr_code(image)
+    if qr_code_content is None and manual_mode is False:
+        return None, image
+    if qr_code_content is None and manual_mode is True:
+        enter_manual_code_content = click.prompt(
+            "do you want to enter K/V pairs manually [y/N]?",
+            type=str,
+            default="N",
+        )
+        if enter_manual_code_content == "N":
+            return
+        else:
+            qr_code_content = click.prompt(
+                "Please proceed with the following format: '{key_value}{anotherKey_anotherValue}'.",
+                type=str,
+                default="",
+            )
+            if not qr_code_content:
+                return None, image
+            else:
+                return qr_code_content, image
+    return qr_code_content, image
+
+
+def process_image(
+    image, dest: str, columns: int, rows: int, scan_type: str, qr_code_content: str
+):
     qr_attributes = get_attributes_from_filename(qr_code_content)
+    expected_nuts = columns * rows
+    cropped_nuts = crop_hazelnuts(image, expected_nuts)
 
     masking_method = create_nut_mask_blue_hsv
 
