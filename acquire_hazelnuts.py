@@ -184,6 +184,8 @@ def do_acquisition(
     )
 
     qr_code_content, image = get_qr_code_content(image_path, manual_mode)
+    if not qr_code_content:
+        return
     qr_code_attributes = get_attributes_from_filename(qr_code_content)
 
     # do the checks here
