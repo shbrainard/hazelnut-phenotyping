@@ -242,7 +242,6 @@ def read_qr_code(image: np.ndarray) -> str:
     thresh = cv2.erode(thresh, None, iterations=2)
     thresh = cv2.dilate(thresh, None, iterations=2)
     qr_codes = pyzbar.decode(thresh)
-    decoded = qr_codes[0].data.decode("utf-8")
     if qr_codes:
         decoded = qr_codes[0].data.decode("utf-8")
         return decoded
@@ -291,16 +290,16 @@ def get_position_of_qr_code(image, manual_mode):
                 print("ℹ️  qr code at bottom")
                 return "bottom"
     else:
-        print("🚨 no qr code found...")
         if manual_mode is True:
             manual_position = click.prompt(
-                "🇺🇸 No qr code found. Is it top [t], right [r], bottom [b] or left [l]?",
+                "🚨 No qr code found. Is it top [t], right [r], bottom [b] or left [l]?",
                 type=str,
                 default="t",
             )
             return {"t": "top", "r": "right", "b": "bottom", "l": "left"}.get(
                 manual_position, None
             )
+        print("🚨 no qr code found...")
 
 
 def rotate_if_you_must(image, qr_code_position):
